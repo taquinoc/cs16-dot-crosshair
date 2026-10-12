@@ -668,9 +668,10 @@ namespace MiraPontinho
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
         }
 
-        // Detecta o zoom (AWP/Scout) olhando a tela: quando o scope esta ativo,
-        // a faixa de cima da tela fica preta (menos o circulo central e o HUD).
-        // Usa CopyFromScreen (rapido) em vez de GetPixel (que e lentissimo).
+        // Detecta o zoom (AWP/Scout) olhando a tela. O scope do CS e preto PURO
+        // (0,0,0) nas laterais e mostra a visao no circulo central. Entao so
+        // consideramos "scoped" se as laterais forem preto puro E o centro
+        // tiver conteudo (o buraco do scope). Cena escura nao passa nisso.
         private void UpdateScopeState(IntPtr game)
         {
             RECT r;
@@ -699,17 +700,32 @@ namespace MiraPontinho
                 using (Graphics g = Graphics.FromImage(_scopeBmp))
                     g.CopyFromScreen(p.X, sy, 0, 0, new Size(w, stripH), CopyPixelOperation.SourceCopy);
 
-                int total = 0, black = 0;
                 BitmapData d = _scopeBmp.LockBits(new Rectangle(0, 0, w, stripH), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                int sideTotal = 0, sideBlack = 0, centerTotal = 0;
+                long centerSum = 0;
                 try
                 {
-                    for (int yy = 0; yy < stripH; yy += 4)
+                    for (int yy = 0; yy < stripH; yy += 3)
                     {
-                        for (int xx = 0; xx < w; xx += 8)
+                        for (int xx = 0; xx < w; xx += 6)
                         {
                             int v = Marshal.ReadInt32(d.Scan0, yy * d.Stride + xx * 4);
-                            total++;
-                            if ((v & 0xFF) <= 20 && ((v >> 8) & 0xFF) <= 20 && ((v >> 16) & 0xFF) <= 20) black++;
+                            int rr = v & 0xFF;
+                            int gg = (v >> 8) & 0xFF;
+                            int bb = (v >> 16) & 0xFF;
+                            bool pureBlack = rr <= 10 && gg <= 10 && bb <= 10;
+                            double fx = (double)xx / w;
+
+                            if (fx < 0.30 || fx > 0.70)
+                            {
+                                sideTotal++;
+                                if (pureBlack) sideBlack++;
+                            }
+                            else
+                            {
+                                centerTotal++;
+                                centerSum += (rr + gg + bb) / 3;
+                            }
                         }
                     }
                 }
@@ -718,16 +734,16 @@ namespace MiraPontinho
                     _scopeBmp.UnlockBits(d);
                 }
 
-                if (total == 0) return;
-                int pct = black * 100 / total;
-                if (_scoped)
-                {
-                    if (pct < _s.ScopeThreshold - 12) _scoped = false;
-                }
-                else
-                {
-                    if (pct >= _s.ScopeThreshold) _scoped = true;
-                }
+                if (sideTotal == 0 || centerTotal == 0) return;
+                int sidePct = sideBlack * 100 / sideTotal;
+                int centerBright = (int)(centerSum / centerTotal);
+
+                // laterais preto puro + centro com conteudo (circulo do scope)
+                bool nowScoped = sidePct >= _s.ScopeThreshold && centerBright >= 18;
+                if (nowScoped)
+                    _scoped = true;
+                else if (sidePct < _s.ScopeThreshold - 12 || centerBright < 12)
+                    _scoped = false;
             }
             catch { }
         }
