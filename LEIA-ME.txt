@@ -19,13 +19,27 @@ A janela de configuracao:
   - Espessura      : grossura dos tracos
   - Vao            : espaco no meio (para Cruz/T/X)
   - Contorno preto : contorno para dar contraste
-  - Ocultar a mira nativa do CS  (deixa SO a sua mira - recomendado)
+  - Deixar a mira do CS invisivel (so config - deixa SO a sua mira)
   Tudo muda AO VIVO (veja a pre-visualizacao a esquerda).
   As configuracoes ficam salvas no arquivo MiraPontinho.ini.
 
+SALVAR E COMPARTILHAR MIRAS:
+  Clique em "Miras / compartilhar por codigo..." (ou icone da bandeja ->
+  "Miras / compartilhar..."). A janela tem:
+   - Minhas miras : salve a mira atual com um nome e aplique/exclua depois.
+                    Fica guardado no MiraPontinho.ini.
+   - Compartilhar : "Exportar + copiar" gera um codigo tipo MIRA1-XXXX com a
+                    sua mira. Pra usar a mira de outra pessoa, cole o codigo no
+                    campo e clique em "Importar codigo".
+
+IDIOMA:
+  No rodape da janela de configuracao, escolha "Portugues" ou "English".
+  A janela recarrega no idioma escolhido e fica salvo no MiraPontinho.ini.
+
 OCULTAR A MIRA NATIVA DO CS (pra nao ficar feia por baixo):
-  Marque a opcao "Ocultar a mira nativa do CS". O programa grava estas linhas
-  nos arquivos "userconfig.cfg" e "autoexec.cfg" da pasta do CS:
+  Marque a opcao "Deixar a mira do CS invisivel (so config)".
+  O Mira Pontinho NAO injeta nada no jogo: ele so grava estas 2 linhas no
+  arquivo "userconfig.cfg" da pasta do CS:
 
       cl_crosshair_color "0 0 0"
       cl_crosshair_translucent "1"
@@ -59,9 +73,9 @@ Atalhos de linha de comando (opcional):
 
 Como remover:
   Nada foi instalado no CS. Feche o programa (icone perto do relogio -> Sair)
-  e apague esta pasta. Se usou "Ocultar a mira nativa do CS", desmarque a opcao
+  e apague esta pasta. Se usou "Deixar a mira do CS invisivel", desmarque a opcao
   antes (pra restaurar a mira do CS) ou apague o bloco "Mira Pontinho" do
-  autoexec.cfg. A janela do CS tambem e restaurada ao sair.
+  userconfig.cfg. A janela do CS tambem e restaurada ao sair.
 
 Recompilar (opcional):
   Rode "build.bat" (usa o .NET Framework que ja vem no Windows).

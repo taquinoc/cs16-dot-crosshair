@@ -26,6 +26,7 @@ namespace MiraPontinho
             Application.SetCompatibleTextRenderingDefault(false);
 
             Settings s = Settings.Load();
+            LocApp.Lang = s.Lang;
             ApplyArgs(s, args);
 
             bool silent = HasFlag(args, "--silent");
@@ -42,7 +43,7 @@ namespace MiraPontinho
                 string dir = CsConfig.FindCstrike(s);
                 if (dir == null)
                 {
-                    MessageBox.Show("Nao achei a pasta do CS. Abra o CS uma vez e tente de novo.",
+                    MessageBox.Show(LocApp.T("Nao achei a pasta do CS. Abra o CS uma vez e tente de novo."),
                         "Mira Pontinho", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                     return;
                 }
@@ -95,6 +96,159 @@ namespace MiraPontinho
         }
     }
 
+    // Traducao simples: a chave e o texto em portugues.
+    internal static class LocApp
+    {
+        public static string Lang = "pt";
+        public static bool En { get { return Lang == "en"; } }
+
+        public static string T(string pt)
+        {
+            if (!En || pt == null) return pt;
+            string en;
+            return _en.TryGetValue(pt, out en) ? en : pt;
+        }
+
+        // Traduz os textos de um formulario (botoes, labels, checkboxes e os
+        // itens de ComboBox). Nao mexe em listas de dados (nomes de miras).
+        public static void Apply(Control root)
+        {
+            if (!En || root == null) return;
+            root.Text = T(root.Text);
+            ApplyTo(root);
+        }
+
+        private static void ApplyTo(Control parent)
+        {
+            foreach (Control c in parent.Controls)
+            {
+                c.Text = T(c.Text);
+                ComboBox cb = c as ComboBox;
+                if (cb != null)
+                    for (int i = 0; i < cb.Items.Count; i++)
+                    {
+                        string item = cb.Items[i] as string;
+                        if (item != null) cb.Items[i] = T(item);
+                    }
+                ApplyTo(c);
+            }
+        }
+
+        private static readonly Dictionary<string, string> _en =
+            new Dictionary<string, string>(StringComparer.Ordinal)
+        {
+            // ---- geral / bandeja ----
+            { "Configurar mira...", "Configure crosshair..." },
+            { "Miras / compartilhar...", "Crosshairs / share..." },
+            { "Ligar/desligar (Ctrl+Alt+D)", "Toggle on/off (Ctrl+Alt+D)" },
+            { "Sair", "Exit" },
+            { "Mira nativa ocultada. Reinicie o CS para aplicar.", "Native crosshair hidden. Restart CS to apply." },
+            { "Mira nativa restaurada. Reinicie o CS para aplicar.", "Native crosshair restored. Restart CS to apply." },
+            { "Nao achei a pasta do CS. Abra o CS uma vez e tente de novo.", "Couldn't find the CS folder. Open CS once and try again." },
+
+            // ---- janela de configuracao ----
+            { "Mira Pontinho - Configuracoes", "Mira Pontinho - Settings" },
+            { "Forma da mira", "Crosshair shape" },
+            { "Cor", "Color" },
+            { "Escolher cor...", "Choose color..." },
+            { "Tamanho", "Size" },
+            { "Espessura", "Thickness" },
+            { "Vao (espaco no meio)", "Gap (space in the middle)" },
+            { "Contorno preto", "Black outline" },
+            { "Ponto", "Dot" },
+            { "Cruz (+)", "Cross (+)" },
+            { "Circulo", "Circle" },
+            { "Mostrar o ponto so quando o CS estiver aberto", "Show the crosshair only when CS is open" },
+            { "Deixar o CS em tela cheia sem borda (pra mira aparecer)", "Keep CS in borderless fullscreen (so the crosshair shows)" },
+            { "Deixar a mira do CS invisivel", "Make the CS crosshair invisible" },
+            { "Grava 2 comandos no userconfig.cfg.\nNada e injetado no jogo.", "Writes 2 commands to userconfig.cfg.\nNothing is injected into the game." },
+            { "O Mira Pontinho NAO injeta nada no jogo.\n\n" +
+              "Ele vai apenas gravar estas 2 linhas no arquivo \"userconfig.cfg\" da pasta do CS:\n\n" +
+              "    cl_crosshair_translucent \"1\"\n" +
+              "    cl_crosshair_color \"0 0 0\"\n\n" +
+              "Pasta:\n{0}\n\n" +
+              "Deseja continuar? (da pra desfazer desmarcando a opcao)",
+              "Mira Pontinho does NOT inject anything into the game.\n\n" +
+              "It will only write these 2 lines to the \"userconfig.cfg\" file in the CS folder:\n\n" +
+              "    cl_crosshair_translucent \"1\"\n" +
+              "    cl_crosshair_color \"0 0 0\"\n\n" +
+              "Folder:\n{0}\n\n" +
+              "Continue? (you can undo it by unchecking the option)" },
+            { "Esconder a mira no zoom (AWP/Scout)", "Hide the crosshair when scoped (AWP/Scout)" },
+            { "Sensibilidade do zoom", "Scope sensitivity" },
+            { "Pasta do CS: nao encontrada.\nAbra o CS ou clique em Procurar.", "CS folder: not found.\nOpen CS or click Browse." },
+            { "Pasta do CS:\n", "CS folder:\n" },
+            { "Procurar pasta do CS...", "Browse CS folder..." },
+            { "Miras / compartilhar por codigo...", "Crosshairs / share by code..." },
+            { "Restaurar padrao", "Restore defaults" },
+            { "Fechar", "Close" },
+            { "Atalho: Ctrl + Alt + D  liga/desliga o ponto", "Hotkey: Ctrl + Alt + D  toggles the crosshair" },
+            { "Nao achei a pasta do CS.\nAbra o CS uma vez ou use \"Procurar pasta do CS...\".", "Couldn't find the CS folder.\nOpen CS once or use \"Browse CS folder...\"." },
+            { "Escolha a pasta 'cstrike' do Counter-Strike 1.6", "Choose the Counter-Strike 1.6 'cstrike' folder" },
+
+            // ---- ajuda manual ----
+            { "Como ocultar a mira do CS (manual)", "How to hide the CS crosshair (manual)" },
+            { "O Mira Pontinho NAO injeta nada no jogo. Isso aqui e so configuracao (comandos cl_crosshair).", "Mira Pontinho does NOT inject anything into the game. This is only configuration (cl_crosshair commands)." },
+            { "Pasta do CS: nao encontrada.", "CS folder: not found." },
+            { "Copiar comandos", "Copy commands" },
+            { "Copiado!", "Copied!" },
+            { "Abrir pasta do CS", "Open CS folder" },
+            { "Se a opcao automatica nao funcionar, da pra ocultar a mira do CS na mao.\r\n\r\n" +
+              "1) Abra o CS e aperte a tecla  ~  pra abrir o console.\r\n" +
+              "2) Cole os comandos abaixo e aperte Enter. A mira some na hora.\r\n\r\n" +
+              "Pra ficar salvo (sem digitar toda vez): crie ou edite o arquivo\r\n" +
+              "\"userconfig.cfg\" dentro da pasta cstrike do CS e cole essas 2 linhas nele.\r\n" +
+              "(Ou use o botao \"Copiar comandos\" e cole no arquivo.)",
+              "If the automatic option doesn't work, you can hide the CS crosshair by hand.\r\n\r\n" +
+              "1) Open CS and press the  ~  key to open the console.\r\n" +
+              "2) Paste the commands below and press Enter. The crosshair disappears right away.\r\n\r\n" +
+              "To keep it saved (so you don't type it every time): create or edit the file\r\n" +
+              "\"userconfig.cfg\" inside the CS cstrike folder and paste those 2 lines in it.\r\n" +
+              "(Or use the \"Copy commands\" button and paste it into the file.)" },
+
+            // ---- janela Miras ----
+            { "Miras - salvar e compartilhar", "Crosshairs - save and share" },
+            { "Minhas miras", "My crosshairs" },
+            { "Aplicar", "Apply" },
+            { "Excluir", "Delete" },
+            { "Nome da mira:", "Crosshair name:" },
+            { "Salvar mira atual", "Save current crosshair" },
+            { "Compartilhar mira (codigo)", "Share crosshair (code)" },
+            { "Exportar + copiar", "Export + copy" },
+            { "Importar codigo", "Import code" },
+            { "Copiar codigo", "Copy code" },
+            { "Mira \"{0}\" aplicada!", "Crosshair \"{0}\" applied!" },
+            { "Mira {0}", "Crosshair {0}" },
+            { "Mira salva como \"{0}\".", "Crosshair saved as \"{0}\"." },
+            { "Mira \"{0}\" excluida.", "Crosshair \"{0}\" deleted." },
+            { "Codigo copiado pra area de transferencia!", "Code copied to clipboard!" },
+            { "Codigo gerado (nao consegui copiar).", "Code generated (couldn't copy)." },
+            { "Nao tem codigo pra copiar.", "No code to copy." },
+            { "Nao consegui copiar.", "Couldn't copy." },
+            { "Codigo invalido. Confira e tente de novo.", "Invalid code. Check it and try again." },
+            { "Mira importada!", "Crosshair imported!" },
+        };
+    }
+
+    // Icone do programa (extraido do proprio .exe, que embute o app.ico).
+    internal static class AppIcon
+    {
+        private static Icon _icon;
+        public static Icon Value
+        {
+            get
+            {
+                if (_icon == null)
+                {
+                    try { _icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); }
+                    catch { }
+                    if (_icon == null) _icon = SystemIcons.Application;
+                }
+                return _icon;
+            }
+        }
+    }
+
     internal sealed class Settings
     {
         public string Shape = "dot";      // dot, cross, t, circle, x
@@ -108,12 +262,15 @@ namespace MiraPontinho
         public bool OnlyInGame = true;    // mostra so quando o CS esta em foco
         public bool Borderless = true;    // deixa a janela do CS em tela cheia sem borda
         public bool ForceScreenCenter = false;
-        public bool HideCsCrosshair = false; // oculta a mira nativa do CS (via autoexec.cfg)
+        public bool HideCsCrosshair = false; // oculta a mira nativa do CS (via config)
+        public bool HideCsWarned = false;    // ja mostrou o aviso "so config" uma vez
         public bool HideOnScope = true;      // esconde o ponto quando da zoom (AWP/Scout)
         public int ScopeThreshold = 55;      // % de tela preta pra considerar "scoped"
         public string CstrikePath = "";
         public string OrigCrosshairColor = "50 250 50";
         public string OrigCrosshairTranslucent = "0";
+        public string Lang = "pt";            // pt ou en
+        public List<UserPreset> UserPresets = new List<UserPreset>(); // biblioteca pessoal
 
         public Color Color { get { return Color.FromArgb(255, R, G, B); } }
 
@@ -148,11 +305,24 @@ namespace MiraPontinho
                         case "onlyingame": s.OnlyInGame = v == "1"; break;
                         case "borderless": s.Borderless = v == "1"; break;
                         case "hidecs": s.HideCsCrosshair = v == "1"; break;
+                        case "hidecswarned": s.HideCsWarned = v == "1"; break;
                         case "hideosscope": s.HideOnScope = v == "1"; break;
                         case "scopethreshold": s.ScopeThreshold = ParseInt(v, s.ScopeThreshold); break;
                         case "cstrikepath": s.CstrikePath = v; break;
                         case "origcolor": s.OrigCrosshairColor = v; break;
                         case "origtranslucent": s.OrigCrosshairTranslucent = v; break;
+                        case "lang": s.Lang = v; break;
+                        case "userpreset":
+                            {
+                                int bar = v.IndexOf('|');
+                                if (bar > 0)
+                                {
+                                    CrosshairPreset cp = CrosshairPreset.FromCode(v.Substring(bar + 1));
+                                    if (cp != null)
+                                        s.UserPresets.Add(new UserPreset(v.Substring(0, bar).Trim(), cp));
+                                }
+                                break;
+                            }
                     }
                 }
             }
@@ -175,6 +345,7 @@ namespace MiraPontinho
             Shape = Shape.ToLowerInvariant();
             if (Shape != "dot" && Shape != "cross" && Shape != "t" && Shape != "circle" && Shape != "x")
                 Shape = "dot";
+            if (Lang != "pt" && Lang != "en") Lang = "pt";
         }
 
         private static int Clamp(int v, int lo, int hi) { return v < lo ? lo : (v > hi ? hi : v); }
@@ -195,15 +366,101 @@ namespace MiraPontinho
                 sb.AppendLine("onlyingame=" + (OnlyInGame ? "1" : "0"));
                 sb.AppendLine("borderless=" + (Borderless ? "1" : "0"));
                 sb.AppendLine("hidecs=" + (HideCsCrosshair ? "1" : "0"));
+                sb.AppendLine("hidecswarned=" + (HideCsWarned ? "1" : "0"));
                 sb.AppendLine("hideosscope=" + (HideOnScope ? "1" : "0"));
                 sb.AppendLine("scopethreshold=" + ScopeThreshold);
                 sb.AppendLine("cstrikepath=" + CstrikePath);
                 sb.AppendLine("origcolor=" + OrigCrosshairColor);
                 sb.AppendLine("origtranslucent=" + OrigCrosshairTranslucent);
+                sb.AppendLine("lang=" + Lang);
+                foreach (UserPreset up in UserPresets)
+                    sb.AppendLine("userpreset=" + SanitizeName(up.Name) + "|" + up.Preset.ToCode());
                 File.WriteAllText(IniPath(), sb.ToString());
             }
             catch { }
         }
+
+        private static string SanitizeName(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "Mira";
+            return name.Replace("|", " ").Replace("\r", " ").Replace("\n", " ").Trim();
+        }
+    }
+
+    // Uma mira "portatil": so os dados visuais (o que da pra compartilhar).
+    internal sealed class CrosshairPreset
+    {
+        public string Shape = "dot";
+        public int R, G, B;
+        public int Size = 6, Thickness = 1, Gap = 3, Outline = 1;
+
+        public static CrosshairPreset FromSettings(Settings s)
+        {
+            CrosshairPreset p = new CrosshairPreset();
+            p.Shape = s.Shape; p.R = s.R; p.G = s.G; p.B = s.B;
+            p.Size = s.Size; p.Thickness = s.Thickness; p.Gap = s.Gap; p.Outline = s.Outline;
+            return p;
+        }
+
+        public void ApplyTo(Settings s)
+        {
+            s.Shape = Shape; s.R = R; s.G = G; s.B = B;
+            s.Size = Size; s.Thickness = Thickness; s.Gap = Gap; s.Outline = Outline;
+            s.Normalize();
+        }
+
+        // codigo de compartilhamento no estilo "share code" do CS:GO
+        // ex.: MIRA1-Y3Jvc3MsMTEsMjU1LDAsNCwyLDEsMA
+        public string ToCode()
+        {
+            string payload = string.Join(",",
+                new string[] { Shape, R.ToString(), G.ToString(), B.ToString(),
+                               Size.ToString(), Thickness.ToString(), Gap.ToString(), Outline.ToString() });
+            string b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(payload))
+                .Replace('+', '-').Replace('/', '_').TrimEnd('=');
+            return "MIRA1." + b64;
+        }
+
+        public static CrosshairPreset FromCode(string code)
+        {
+            if (string.IsNullOrEmpty(code)) return null;
+            code = code.Trim().Replace("\r", "").Replace("\n", "").Replace(" ", "").Replace("\t", "");
+            if (code.StartsWith("MIRA1.", StringComparison.OrdinalIgnoreCase))
+                code = code.Substring(6);
+            code = code.Replace('-', '+').Replace('_', '/');
+            while (code.Length % 4 != 0) code += "=";
+
+            string payload;
+            try { payload = Encoding.UTF8.GetString(Convert.FromBase64String(code)); }
+            catch { return null; }
+
+            string[] f = payload.Split(',');
+            if (f.Length != 8) return null;
+
+            try
+            {
+                CrosshairPreset p = new CrosshairPreset();
+                p.Shape = f[0].Trim().ToLowerInvariant();
+                p.R = int.Parse(f[1]); p.G = int.Parse(f[2]); p.B = int.Parse(f[3]);
+                p.Size = int.Parse(f[4]); p.Thickness = int.Parse(f[5]);
+                p.Gap = int.Parse(f[6]); p.Outline = int.Parse(f[7]);
+
+                if (p.Shape != "dot" && p.Shape != "cross" && p.Shape != "t" && p.Shape != "circle" && p.Shape != "x")
+                    return null;
+                if (p.R < 0 || p.R > 255 || p.G < 0 || p.G > 255 || p.B < 0 || p.B > 255) return null;
+                if (p.Size < 1 || p.Size > 60 || p.Thickness < 1 || p.Thickness > 20) return null;
+                if (p.Gap < 0 || p.Gap > 40 || p.Outline < 0 || p.Outline > 6) return null;
+                return p;
+            }
+            catch { return null; }
+        }
+    }
+
+    internal sealed class UserPreset
+    {
+        public string Name;
+        public CrosshairPreset Preset;
+        public UserPreset(string name, CrosshairPreset preset) { Name = name; Preset = preset; }
     }
 
     internal static class CrosshairRenderer
@@ -395,14 +652,35 @@ namespace MiraPontinho
                 translucent = s.OrigCrosshairTranslucent;
             }
 
-            // o config.cfg termina com "exec userconfig.cfg": esse arquivo e
-            // executado por ultimo e garante que os cvars valham.
+            // So o userconfig.cfg: o config.cfg termina com "exec userconfig.cfg",
+            // entao ele e executado por ultimo e garante os cvars. NAO mexemos no
+            // autoexec.cfg (menos invasivo). Se uma versao antiga deixou o bloco
+            // la, a gente remove.
             WriteBlock(Path.Combine(cstrikeDir, "userconfig.cfg"), color, translucent);
-            WriteBlock(Path.Combine(cstrikeDir, "autoexec.cfg"), color, translucent);
+            RemoveBlock(Path.Combine(cstrikeDir, "autoexec.cfg"));
 
             message = hide
-                ? "Mira nativa ocultada. Reinicie o CS para aplicar."
-                : "Mira nativa restaurada. Reinicie o CS para aplicar.";
+                ? LocApp.T("Mira nativa ocultada. Reinicie o CS para aplicar.")
+                : LocApp.T("Mira nativa restaurada. Reinicie o CS para aplicar.");
+        }
+
+        private static void RemoveBlock(string path)
+        {
+            try
+            {
+                if (!File.Exists(path)) return;
+                List<string> lines = new List<string>();
+                lines.AddRange(File.ReadAllLines(path));
+
+                int b = lines.FindIndex(delegate(string x) { return x.Trim() == Begin; });
+                int e = lines.FindIndex(delegate(string x) { return x.Trim() == End; });
+                if (b >= 0 && e >= b)
+                {
+                    lines.RemoveRange(b, e - b + 1);
+                    File.WriteAllLines(path, lines.ToArray());
+                }
+            }
+            catch { }
         }
 
         private static void WriteBlock(string path, string color, string translucent)
@@ -549,6 +827,7 @@ namespace MiraPontinho
             BackColor = Color.Fuchsia;
             TransparencyKey = Color.Fuchsia;
             Text = "Mira Pontinho";
+            Icon = AppIcon.Value;
             Visible = false;
 
             ApplySettings();
@@ -905,8 +1184,10 @@ namespace MiraPontinho
     {
         private readonly Settings _s;
         private readonly OverlayForm _overlay;
+        private readonly Action _onReopen;
 
         private ComboBox _shape;
+        private ComboBox _lang;
         private Panel _swatch;
         private TrackBar _size, _thick, _gap, _outline;
         private Label _sizeV, _thickV, _gapV, _outlineV;
@@ -919,19 +1200,21 @@ namespace MiraPontinho
         private static readonly string[] ShapeNames = { "Ponto", "Cruz (+)", "T", "Circulo", "X" };
         private static readonly string[] ShapeIds = { "dot", "cross", "t", "circle", "x" };
 
-        public SettingsForm(Settings s, OverlayForm overlay)
+        public SettingsForm(Settings s, OverlayForm overlay, Action onReopen)
         {
             _s = s;
             _overlay = overlay;
+            _onReopen = onReopen;
 
             Text = "Mira Pontinho - Configuracoes";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(520, 530);
+            ClientSize = new Size(520, 560);
             TopMost = true;
             BackColor = Color.FromArgb(245, 246, 248);
+            Icon = AppIcon.Value;
 
             _preview = new PreviewPanel(_s);
             _preview.SetBounds(16, 16, 200, 200);
@@ -997,7 +1280,7 @@ namespace MiraPontinho
             Controls.Add(_borderless);
 
             _hideCs = new CheckBox();
-            _hideCs.Text = "Ocultar a mira nativa do CS";
+            _hideCs.Text = "Deixar a mira do CS invisivel";
             _hideCs.SetBounds(16, 302, 180, 22);
             _hideCs.Checked = _s.HideCsCrosshair;
             _hideCs.CheckedChanged += delegate { ToggleHideCs(); };
@@ -1053,6 +1336,14 @@ namespace MiraPontinho
             browse.Click += delegate { BrowseCstrike(); };
             Controls.Add(browse);
 
+            Label hideCsNote = new Label();
+            hideCsNote.AutoSize = false;
+            hideCsNote.Font = new Font(Font.FontFamily, 8f);
+            hideCsNote.Text = "Grava 2 comandos no userconfig.cfg.\nNada e injetado no jogo.";
+            hideCsNote.ForeColor = Color.FromArgb(120, 120, 120);
+            hideCsNote.SetBounds(16, 486, 210, 30);
+            Controls.Add(hideCsNote);
+
             UpdateCsStatus();
 
             Button reset = new Button();
@@ -1060,6 +1351,12 @@ namespace MiraPontinho
             reset.SetBounds(232, 420, 120, 30);
             reset.Click += delegate { ResetDefaults(); };
             Controls.Add(reset);
+
+            Button presets = new Button();
+            presets.Text = "Miras / compartilhar por codigo...";
+            presets.SetBounds(232, 380, 260, 30);
+            presets.Click += delegate { OpenPresets(); };
+            Controls.Add(presets);
 
             Button close = new Button();
             close.Text = "Fechar";
@@ -1072,6 +1369,31 @@ namespace MiraPontinho
             hint.ForeColor = Color.FromArgb(90, 90, 90);
             hint.SetBounds(232, 462, 280, 20);
             Controls.Add(hint);
+
+            Label langLbl = new Label();
+            langLbl.Text = "Idioma / Language";
+            langLbl.SetBounds(232, 486, 130, 18);
+            Controls.Add(langLbl);
+
+            _lang = new ComboBox();
+            _lang.DropDownStyle = ComboBoxStyle.DropDownList;
+            _lang.Items.AddRange(new object[] { "Portugues", "English" });
+            _lang.SelectedIndex = _s.Lang == "en" ? 1 : 0;
+            _lang.SetBounds(232, 504, 130, 24);
+            _lang.SelectedIndexChanged += delegate
+            {
+                if (_suppress) return;
+                string want = _lang.SelectedIndex == 1 ? "en" : "pt";
+                if (want == _s.Lang) return;
+                _s.Lang = want;
+                _s.Save();
+                LocApp.Lang = want;
+                if (_onReopen != null) BeginInvoke((Action)delegate { _onReopen(); });
+            };
+            Controls.Add(_lang);
+
+            // traduz tudo pro idioma escolhido (a chave e o texto em PT)
+            LocApp.Apply(this);
         }
 
         private static int IdToIndex(string id)
@@ -1148,7 +1470,7 @@ namespace MiraPontinho
             if (dir == null && hide)
             {
                 MessageBox.Show(this,
-                    "Nao achei a pasta do CS.\nAbra o CS uma vez ou use \"Procurar pasta do CS...\".",
+                    LocApp.T("Nao achei a pasta do CS.\nAbra o CS uma vez ou use \"Procurar pasta do CS...\"."),
                     "Mira Pontinho", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 _suppress = true;
                 _hideCs.Checked = false;
@@ -1157,6 +1479,32 @@ namespace MiraPontinho
                 _s.Save();
                 UpdateCsStatus();
                 return;
+            }
+
+            // Aviso (na primeira vez) deixando claro que NAO injetamos nada:
+            // so gravamos 2 comandos de configuracao no userconfig.cfg.
+            if (hide && !_s.HideCsWarned)
+            {
+                string txt = string.Format(LocApp.T(
+                    "O Mira Pontinho NAO injeta nada no jogo.\n\n" +
+                    "Ele vai apenas gravar estas 2 linhas no arquivo \"userconfig.cfg\" da pasta do CS:\n\n" +
+                    "    cl_crosshair_translucent \"1\"\n" +
+                    "    cl_crosshair_color \"0 0 0\"\n\n" +
+                    "Pasta:\n{0}\n\n" +
+                    "Deseja continuar? (da pra desfazer desmarcando a opcao)"), dir);
+
+                if (MessageBox.Show(this, txt, "Mira Pontinho",
+                        MessageBoxButtons.OKCancel, MessageBoxIcon.Information) != DialogResult.OK)
+                {
+                    _suppress = true;
+                    _hideCs.Checked = false;
+                    _suppress = false;
+                    _s.HideCsCrosshair = false;
+                    _s.Save();
+                    UpdateCsStatus();
+                    return;
+                }
+                _s.HideCsWarned = true;
             }
 
             _s.HideCsCrosshair = hide;
@@ -1178,7 +1526,7 @@ namespace MiraPontinho
         {
             using (FolderBrowserDialog fb = new FolderBrowserDialog())
             {
-                fb.Description = "Escolha a pasta 'cstrike' do Counter-Strike 1.6";
+                fb.Description = LocApp.T("Escolha a pasta 'cstrike' do Counter-Strike 1.6");
                 if (!string.IsNullOrEmpty(_s.CstrikePath) && Directory.Exists(_s.CstrikePath))
                     fb.SelectedPath = _s.CstrikePath;
                 if (fb.ShowDialog(this) == DialogResult.OK)
@@ -1194,9 +1542,9 @@ namespace MiraPontinho
         {
             string dir = CsConfig.FindCstrike(_s);
             if (dir == null)
-                _csStatus.Text = "Pasta do CS: nao encontrada.\nAbra o CS ou clique em Procurar.";
+                _csStatus.Text = LocApp.T("Pasta do CS: nao encontrada.\nAbra o CS ou clique em Procurar.");
             else
-                _csStatus.Text = "Pasta do CS:\n" + dir;
+                _csStatus.Text = LocApp.T("Pasta do CS:\n") + dir;
         }
 
         private void ResetDefaults()
@@ -1207,6 +1555,25 @@ namespace MiraPontinho
 
             _shape.SelectedIndex = IdToIndex(_s.Shape);
             _size.Value = _s.Size; _thick.Value = _s.Thickness; _gap.Value = _s.Gap; _outline.Value = _s.Outline;
+            UpdateSwatch();
+            Changed();
+        }
+
+        public void OpenPresets()
+        {
+            using (PresetsForm pf = new PresetsForm(_s, this))
+                pf.ShowDialog(this);
+        }
+
+        // Sincroniza os controles com o objeto de configuracao (usado quando uma
+        // mira pronta/importada e aplicada na janela "Miras").
+        public void ReloadFromSettings()
+        {
+            _shape.SelectedIndex = IdToIndex(_s.Shape);
+            _size.Value = _s.Size;
+            _thick.Value = _s.Thickness;
+            _gap.Value = _s.Gap;
+            _outline.Value = _s.Outline;
             UpdateSwatch();
             Changed();
         }
@@ -1224,6 +1591,218 @@ namespace MiraPontinho
         }
     }
 
+    // Janela "Miras": biblioteca pessoal e compartilhar por codigo.
+    internal sealed class PresetsForm : Form
+    {
+        private readonly Settings _s;
+        private readonly SettingsForm _owner;
+        private readonly Settings _previewSettings = new Settings();
+
+        private readonly ListBox _mineList = new ListBox();
+        private readonly TextBox _codeBox = new TextBox();
+        private readonly TextBox _nameBox = new TextBox();
+        private readonly Label _status = new Label();
+        private readonly PreviewPanel _preview;
+
+        public PresetsForm(Settings s, SettingsForm owner)
+        {
+            _s = s;
+            _owner = owner;
+
+            Text = LocApp.T("Miras - salvar e compartilhar");
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
+            MinimizeBox = false;
+            StartPosition = FormStartPosition.CenterParent;
+            ClientSize = new Size(600, 424);
+            TopMost = true;
+            BackColor = Color.FromArgb(245, 246, 248);
+            Icon = AppIcon.Value;
+
+            // ---------- Minhas miras ----------
+            GroupBox gbMine = new GroupBox();
+            gbMine.Text = LocApp.T("Minhas miras");
+            gbMine.SetBounds(10, 10, 580, 190);
+            Controls.Add(gbMine);
+
+            _mineList.SetBounds(14, 24, 270, 152);
+            _mineList.IntegralHeight = false;
+            _mineList.SelectedIndexChanged += delegate { PreviewMine(); };
+            _mineList.DoubleClick += delegate { ApplyMine(); };
+            gbMine.Controls.Add(_mineList);
+
+            Button applyMine = new Button();
+            applyMine.Text = LocApp.T("Aplicar");
+            applyMine.SetBounds(296, 26, 130, 28);
+            applyMine.Click += delegate { ApplyMine(); };
+            gbMine.Controls.Add(applyMine);
+
+            Button delMine = new Button();
+            delMine.Text = LocApp.T("Excluir");
+            delMine.SetBounds(296, 60, 130, 28);
+            delMine.Click += delegate { DeleteMine(); };
+            gbMine.Controls.Add(delMine);
+
+            Label nameLbl = new Label();
+            nameLbl.Text = LocApp.T("Nome da mira:");
+            nameLbl.SetBounds(296, 94, 130, 16);
+            gbMine.Controls.Add(nameLbl);
+
+            _nameBox.SetBounds(296, 112, 130, 24);
+            gbMine.Controls.Add(_nameBox);
+
+            Button saveMine = new Button();
+            saveMine.Text = LocApp.T("Salvar mira atual");
+            saveMine.SetBounds(296, 140, 130, 24);
+            saveMine.Click += delegate { SaveMine(); };
+            gbMine.Controls.Add(saveMine);
+
+            _preview = new PreviewPanel(_previewSettings);
+            _preview.SetBounds(434, 24, 134, 152);
+            gbMine.Controls.Add(_preview);
+
+            // ---------- Compartilhar ----------
+            GroupBox gbShare = new GroupBox();
+            gbShare.Text = LocApp.T("Compartilhar mira (codigo)");
+            gbShare.SetBounds(10, 206, 580, 152);
+            Controls.Add(gbShare);
+
+            _codeBox.Multiline = true;
+            _codeBox.WordWrap = true;
+            _codeBox.Font = new Font("Consolas", 9f);
+            _codeBox.SetBounds(14, 26, 420, 102);
+            gbShare.Controls.Add(_codeBox);
+
+            Button exp = new Button();
+            exp.Text = LocApp.T("Exportar + copiar");
+            exp.SetBounds(446, 26, 124, 30);
+            exp.Click += delegate { ExportCode(); };
+            gbShare.Controls.Add(exp);
+
+            Button imp = new Button();
+            imp.Text = LocApp.T("Importar codigo");
+            imp.SetBounds(446, 62, 124, 30);
+            imp.Click += delegate { ImportCode(); };
+            gbShare.Controls.Add(imp);
+
+            Button cp = new Button();
+            cp.Text = LocApp.T("Copiar codigo");
+            cp.SetBounds(446, 98, 124, 30);
+            cp.Click += delegate { CopyCode(); };
+            gbShare.Controls.Add(cp);
+
+            // ---------- Rodape ----------
+            _status.SetBounds(10, 364, 480, 18);
+            _status.ForeColor = Color.FromArgb(70, 70, 70);
+            Controls.Add(_status);
+
+            Button close = new Button();
+            close.Text = LocApp.T("Fechar");
+            close.SetBounds(488, 382, 102, 26);
+            close.Click += delegate { Close(); };
+            Controls.Add(close);
+
+            RefreshMineList();
+            Preview(_s); // comeca mostrando a mira atual
+        }
+
+        private void ApplyMine()
+        {
+            int i = _mineList.SelectedIndex;
+            if (i < 0 || i >= _s.UserPresets.Count) return;
+            _s.UserPresets[i].Preset.ApplyTo(_s);
+            _owner.ReloadFromSettings();
+            _status.Text = string.Format(LocApp.T("Mira \"{0}\" aplicada!"), _s.UserPresets[i].Name);
+        }
+
+        private void PreviewMine()
+        {
+            int i = _mineList.SelectedIndex;
+            if (i < 0 || i >= _s.UserPresets.Count) { Preview(_s); return; }
+            Preview(_s.UserPresets[i].Preset);
+        }
+
+        private void Preview(CrosshairPreset p)
+        {
+            p.ApplyTo(_previewSettings);
+            _previewSettings.Normalize();
+            _preview.Invalidate();
+        }
+
+        private void Preview(Settings s)
+        {
+            Preview(CrosshairPreset.FromSettings(s));
+        }
+
+        private void SaveMine()
+        {
+            string name = _nameBox.Text.Trim();
+            if (name.Length == 0) name = string.Format(LocApp.T("Mira {0}"), _s.UserPresets.Count + 1);
+
+            CrosshairPreset p = CrosshairPreset.FromSettings(_s);
+            int existing = -1;
+            for (int i = 0; i < _s.UserPresets.Count; i++)
+                if (string.Equals(_s.UserPresets[i].Name, name, StringComparison.OrdinalIgnoreCase))
+                { existing = i; break; }
+
+            if (existing >= 0) _s.UserPresets[existing].Preset = p;
+            else _s.UserPresets.Add(new UserPreset(name, p));
+
+            _s.Save();
+            RefreshMineList();
+            _status.Text = string.Format(LocApp.T("Mira salva como \"{0}\"."), name);
+        }
+
+        private void DeleteMine()
+        {
+            int i = _mineList.SelectedIndex;
+            if (i < 0 || i >= _s.UserPresets.Count) return;
+            string name = _s.UserPresets[i].Name;
+            _s.UserPresets.RemoveAt(i);
+            _s.Save();
+            RefreshMineList();
+            _status.Text = string.Format(LocApp.T("Mira \"{0}\" excluida."), name);
+        }
+
+        private void RefreshMineList()
+        {
+            int sel = _mineList.SelectedIndex;
+            _mineList.Items.Clear();
+            foreach (UserPreset up in _s.UserPresets) _mineList.Items.Add(up.Name);
+            if (_mineList.Items.Count > 0)
+                _mineList.SelectedIndex = Math.Min(Math.Max(sel, 0), _mineList.Items.Count - 1);
+            else
+                Preview(_s);
+        }
+
+        private void ExportCode()
+        {
+            string code = CrosshairPreset.FromSettings(_s).ToCode();
+            _codeBox.Text = code;
+            try { Clipboard.SetText(code); _status.Text = LocApp.T("Codigo copiado pra area de transferencia!"); }
+            catch { _status.Text = LocApp.T("Codigo gerado (nao consegui copiar)."); }
+        }
+
+        private void CopyCode()
+        {
+            string code = _codeBox.Text.Trim();
+            if (code.Length == 0) { _status.Text = LocApp.T("Nao tem codigo pra copiar."); return; }
+            try { Clipboard.SetText(code); _status.Text = LocApp.T("Codigo copiado!"); }
+            catch { _status.Text = LocApp.T("Nao consegui copiar."); }
+        }
+
+        private void ImportCode()
+        {
+            CrosshairPreset p = CrosshairPreset.FromCode(_codeBox.Text);
+            if (p == null) { _status.Text = LocApp.T("Codigo invalido. Confira e tente de novo."); return; }
+            p.ApplyTo(_s);
+            _s.Save();
+            _owner.ReloadFromSettings();
+            Preview(p);
+            _status.Text = LocApp.T("Mira importada!");
+        }
+    }
+
     internal sealed class HelpForm : Form
     {
         private const string Commands = "cl_crosshair_translucent 1\r\ncl_crosshair_color \"0 0 0\"";
@@ -1235,26 +1814,33 @@ namespace MiraPontinho
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(490, 330);
+            ClientSize = new Size(490, 366);
             TopMost = true;
             BackColor = Color.FromArgb(245, 246, 248);
+            Icon = AppIcon.Value;
+
+            Label note = new Label();
+            note.SetBounds(16, 10, 458, 30);
+            note.ForeColor = Color.FromArgb(70, 70, 70);
+            note.Text = "O Mira Pontinho NAO injeta nada no jogo. Isso aqui e so configuracao (comandos cl_crosshair).";
+            Controls.Add(note);
 
             Label info = new Label();
-            info.SetBounds(16, 12, 458, 150);
-            info.Text =
+            info.SetBounds(16, 46, 458, 150);
+            info.Text = LocApp.T(
                 "Se a opcao automatica nao funcionar, da pra ocultar a mira do CS na mao.\r\n\r\n" +
                 "1) Abra o CS e aperte a tecla  ~  pra abrir o console.\r\n" +
                 "2) Cole os comandos abaixo e aperte Enter. A mira some na hora.\r\n\r\n" +
                 "Pra ficar salvo (sem digitar toda vez): crie ou edite o arquivo\r\n" +
                 "\"userconfig.cfg\" dentro da pasta cstrike do CS e cole essas 2 linhas nele.\r\n" +
-                "(Ou use o botao \"Copiar comandos\" e cole no arquivo.)";
+                "(Ou use o botao \"Copiar comandos\" e cole no arquivo.)");
             Controls.Add(info);
 
             string dir = CsConfig.FindCstrike(s);
             Label pathLbl = new Label();
-            pathLbl.SetBounds(16, 166, 458, 34);
+            pathLbl.SetBounds(16, 200, 458, 34);
             pathLbl.ForeColor = Color.FromArgb(90, 90, 90);
-            pathLbl.Text = dir == null ? "Pasta do CS: nao encontrada." : ("Pasta do CS:\n" + dir);
+            pathLbl.Text = dir == null ? LocApp.T("Pasta do CS: nao encontrada.") : (LocApp.T("Pasta do CS:\n") + dir);
             Controls.Add(pathLbl);
 
             TextBox tb = new TextBox();
@@ -1262,23 +1848,23 @@ namespace MiraPontinho
             tb.ReadOnly = true;
             tb.WordWrap = false;
             tb.Font = new Font("Consolas", 10f);
-            tb.SetBounds(16, 204, 458, 54);
+            tb.SetBounds(16, 238, 458, 54);
             tb.Text = Commands;
             Controls.Add(tb);
 
             Button copy = new Button();
             copy.Text = "Copiar comandos";
-            copy.SetBounds(16, 274, 150, 30);
+            copy.SetBounds(16, 308, 150, 30);
             copy.Click += delegate
             {
-                try { Clipboard.SetText(Commands); copy.Text = "Copiado!"; }
+                try { Clipboard.SetText(Commands); copy.Text = LocApp.T("Copiado!"); }
                 catch { }
             };
             Controls.Add(copy);
 
             Button open = new Button();
             open.Text = "Abrir pasta do CS";
-            open.SetBounds(176, 274, 150, 30);
+            open.SetBounds(176, 308, 150, 30);
             open.Enabled = dir != null;
             open.Click += delegate
             {
@@ -1289,9 +1875,11 @@ namespace MiraPontinho
 
             Button close = new Button();
             close.Text = "Fechar";
-            close.SetBounds(354, 274, 120, 30);
+            close.SetBounds(354, 308, 120, 30);
             close.Click += delegate { Close(); };
             Controls.Add(close);
+
+            LocApp.Apply(this);
         }
     }
 
@@ -1309,29 +1897,45 @@ namespace MiraPontinho
             _overlay.Show();
             _overlay.Hide();
 
-            ContextMenuStrip menu = new ContextMenuStrip();
-            menu.Items.Add("Configurar mira...", null, delegate { OpenSettings(); });
-            menu.Items.Add("Ligar/desligar (Ctrl+Alt+D)", null, delegate { _overlay.Toggle(); });
-            menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Sair", null, delegate { Quit(); });
-
             _tray = new NotifyIcon();
-            _tray.Icon = SystemIcons.Application;
+            _tray.Icon = AppIcon.Value;
             _tray.Text = "Mira Pontinho";
             _tray.Visible = true;
-            _tray.ContextMenuStrip = menu;
             _tray.DoubleClick += delegate { OpenSettings(); };
 
+            BuildMenu();
+
             if (openForm) OpenSettings();
+        }
+
+        private void BuildMenu()
+        {
+            ContextMenuStrip menu = new ContextMenuStrip();
+            menu.Items.Add(LocApp.T("Configurar mira..."), null, delegate { OpenSettings(); });
+            menu.Items.Add(LocApp.T("Miras / compartilhar..."), null, delegate { OpenSettings(); if (_form != null) _form.OpenPresets(); });
+            menu.Items.Add(LocApp.T("Ligar/desligar (Ctrl+Alt+D)"), null, delegate { _overlay.Toggle(); });
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(LocApp.T("Sair"), null, delegate { Quit(); });
+            _tray.ContextMenuStrip = menu;
         }
 
         private void OpenSettings()
         {
             if (_form == null || _form.IsDisposed)
-                _form = new SettingsForm(_s, _overlay);
+                _form = new SettingsForm(_s, _overlay, ReopenSettings);
             _form.Show();
             _form.BringToFront();
             _form.Activate();
+        }
+
+        // Recria a janela (usado quando troca o idioma) pra aplicar a traducao.
+        private void ReopenSettings()
+        {
+            SettingsForm old = _form;
+            _form = null;
+            if (old != null && !old.IsDisposed) old.Dispose();
+            BuildMenu();
+            OpenSettings();
         }
 
         private void Quit()

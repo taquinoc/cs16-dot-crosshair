@@ -19,8 +19,10 @@ Um overlay **externo** que desenha uma mira (ponto, cruz, T, círculo ou X) no c
 - Formas: **Ponto, Cruz (+), T, Círculo e X**
 - Cor, tamanho, espessura, vão e contorno ajustáveis
 - **Pré-visualização ao vivo** enquanto você ajusta
+- **Salvar e compartilhar miras**: biblioteca pessoal com nome + código pra importar/exportar (igual ao "share code" do CS:GO)
+- **Idioma: Português ou English**
 - Segue a janela do CS (funciona em janela e em **tela cheia sem borda**)
-- **Oculta a mira nativa do CS** (opção automática + ajuda manual com botão **?**)
+- **Oculta a mira nativa do CS** (só configuração — grava 2 linhas no `userconfig.cfg`, nada é injetado no jogo; + ajuda manual com botão **?**)
 - **Esconde a mira no zoom** (AWP/Scout) automaticamente
 - Atalho global **Ctrl + Alt + D** para ligar/desligar
 - Ícone na bandeja do sistema
@@ -35,8 +37,17 @@ Um overlay **externo** que desenha uma mira (ponto, cruz, T, círculo ou X) no c
 
 **Atalhos:** `Ctrl + Alt + D` liga/desliga · ícone perto do relógio → *Configurar / Sair*.
 
+### 💾 Salvar e compartilhar miras
+Na janela de configuração, clique em **"Miras / compartilhar por código..."** (ou no ícone da bandeja → *Miras / compartilhar...*):
+
+- **Minhas miras:** salve a mira atual com um nome e aplique/exclua quando quiser (fica guardado no `MiraPontinho.ini`).
+- **Compartilhar (código):** clique em **Exportar + copiar** pra gerar um código tipo `MIRA1-...` e mandar pra alguém. Pra usar a de outra pessoa, cole no campo e clique em **Importar código**.
+
+### 🌎 Idioma
+No rodapé da janela de configuração, escolha **Português** ou **English** — a janela já recarrega no idioma escolhido (e fica salvo).
+
 ### 🎯 Ocultar a mira nativa do CS
-O CS 1.6 desenha a mira dele por cima de tudo, então fica feio com o ponto em cima. Marque a opção **"Ocultar a mira nativa do CS"** — o programa grava no `userconfig.cfg` do CS:
+O CS 1.6 desenha a mira dele por cima de tudo, então fica feio com o ponto em cima. Marque a opção **"Deixar a mira do CS invisível (só config)"** — o programa **não injeta nada**: ele só grava 2 linhas de configuração no `userconfig.cfg` do CS:
 
 ```
 cl_crosshair_color "0 0 0"
@@ -94,8 +105,10 @@ An **external overlay** that draws a crosshair (dot, cross, T, circle or X) in t
 - Shapes: **Dot, Cross (+), T, Circle and X**
 - Adjustable color, size, thickness, gap and outline
 - **Live preview**
+- **Save & share crosshairs**: personal named library + import/export code (like CS:GO "share codes")
+- **Language: Portuguese or English**
 - Follows the CS window (works windowed and in **borderless fullscreen**)
-- **Hides the native CS crosshair** (automatic option + manual help with a **?** button)
+- **Hides the native CS crosshair** (config only — writes 2 lines to `userconfig.cfg`, nothing is injected into the game; plus manual help with a **?** button)
 - **Auto-hides the crosshair when scoped** (AWP/Scout)
 - Global hotkey **Ctrl + Alt + D** to toggle
 - System tray icon
@@ -107,6 +120,15 @@ An **external overlay** that draws a crosshair (dot, cross, T, circle or X) in t
 2. Run `MiraPontinho.exe`.
 3. Adjust the crosshair in the settings window.
 4. Launch CS 1.6 — the crosshair appears in the center while CS is focused.
+
+### Save & share crosshairs
+In the settings window click **"Miras / compartilhar por código..."** (or the tray icon → *Miras / compartilhar...*):
+
+- **Minhas miras (my crosshairs):** save the current crosshair with a name and apply/delete it anytime (stored in `MiraPontinho.ini`).
+- **Share (code):** click **Exportar + copiar** to generate a code like `MIRA1-...` and send it to someone. To use one, paste it in the box and click **Importar código**.
+
+### Language
+At the bottom of the settings window, pick **Português** or **English** — the window reloads in the chosen language (and it is saved).
 
 ### Zoom (AWP/Scout)
 When you scope with the AWP/Scout, CS covers the screen with the scope. The **"Hide crosshair when scoped"** option detects it (the screen becomes mostly black) and hides the dot. Adjust **"Scope sensitivity"** if it triggers too much or too little.
