@@ -5,9 +5,24 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
+
+// Metadados do binario: ajudar antivirus/heuristicas e deixar o .exe com
+// informacoes de versao (binario sem version info e um gatilho comum de FP).
+[assembly: AssemblyTitle("Mira Pontinho")]
+[assembly: AssemblyDescription("External crosshair overlay for Counter-Strike 1.6")]
+[assembly: AssemblyProduct("Mira Pontinho")]
+[assembly: AssemblyCompany("taquinoc")]
+[assembly: AssemblyCopyright("Copyright (c) 2026 taquinoc - MIT License")]
+[assembly: AssemblyConfiguration("Release")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyInformationalVersion("1.2.0")]
+[assembly: ComVisible(false)]
+[assembly: Guid("7b2f4c9a-1d3e-4f6b-8a20-9c5e1d7b3a44")]
 
 namespace MiraPontinho
 {
