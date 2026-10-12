@@ -232,13 +232,15 @@ namespace MiraPontinho
 
             if (s.Shape == "dot")
             {
-                int x = icx - (size - 1) / 2;
-                int y = icy - (size - 1) / 2;
+                // O GDI+ FillEllipse rasteriza errado em tamanhos pequenos: em
+                // vez de um ponto redondo centralizado, ele desenha um quadrado
+                // deslocado (um pixel "vazando" para um lado). Entao desenhamos
+                // o ponto pixel a pixel, sempre centrado no pixel do meio.
+                double pcx = icx - (size - 1) / 2 + size / 2.0;
+                double pcy = icy - (size - 1) / 2 + size / 2.0;
                 if (outline > 0)
-                    using (SolidBrush b = new SolidBrush(Color.Black))
-                        g.FillEllipse(b, x - outline, y - outline, size + 2 * outline, size + 2 * outline);
-                using (SolidBrush b = new SolidBrush(s.Color))
-                    g.FillEllipse(b, x, y, size, size);
+                    FillCircle(g, pcx, pcy, size / 2.0 + outline, Color.Black);
+                FillCircle(g, pcx, pcy, size / 2.0, s.Color);
                 return;
             }
 
@@ -262,12 +264,46 @@ namespace MiraPontinho
                 return;
             }
 
+            // Cruz / T: os bracos ficam simetricos em relacao ao pixel central.
+            // (antes o vao de cima/do lado tinha 1 pixel a mais que o de baixo,
+            // deixando a cruz desalinhada em meio pixel)
             bool up = s.Shape == "cross";
             int h = (thick - 1) / 2;
-            if (up) FillArm(g, icx - h, icy - gap - size, thick, size, outline, s.Color);
-            FillArm(g, icx - h, icy + gap, thick, size, outline, s.Color);
-            FillArm(g, icx - gap - size, icy - h, size, thick, outline, s.Color);
-            FillArm(g, icx + gap, icy - h, size, thick, outline, s.Color);
+            int v0 = icx - h;                  // primeira coluna do traco vertical
+            int u0 = icy - h;                  // primeira linha do traco horizontal
+            int v1 = v0 + thick - 1;           // ultima coluna do traco vertical
+            int u1 = u0 + thick - 1;           // ultima linha do traco horizontal
+
+            if (up) FillArm(g, v0, u0 - gap - size, thick, size, outline, s.Color); // cima
+            FillArm(g, v0, u1 + 1 + gap, thick, size, outline, s.Color);            // baixo
+            FillArm(g, v0 - gap - size, u0, size, thick, outline, s.Color);         // esquerda
+            FillArm(g, v1 + 1 + gap, u0, size, thick, outline, s.Color);            // direita
+            if (gap == 0) FillArm(g, v0, u0, thick, thick, outline, s.Color);       // sem vao: fecha o meio
+        }
+
+        // Ponto redondo desenhado pixel a pixel: garante simetria perfeita e o
+        // pixel central certo (o GDI+ FillEllipse erra em tamanhos pequenos).
+        private static void FillCircle(Graphics g, double cx, double cy, double radius, Color color)
+        {
+            if (radius <= 0) return;
+            int x0 = (int)Math.Floor(cx - radius);
+            int x1 = (int)Math.Ceiling(cx + radius);
+            int y0 = (int)Math.Floor(cy - radius);
+            int y1 = (int)Math.Ceiling(cy + radius);
+            double r2 = radius * radius;
+            using (SolidBrush b = new SolidBrush(color))
+            {
+                for (int y = y0; y < y1; y++)
+                {
+                    double dy = (y + 0.5) - cy;
+                    double inner = r2 - dy * dy;
+                    if (inner < 0) continue;
+                    double half = Math.Sqrt(inner);
+                    int xa = (int)Math.Ceiling(cx - half - 0.5);
+                    int xb = (int)Math.Floor(cx + half - 0.5);
+                    if (xb >= xa) g.FillRectangle(b, xa, y, xb - xa + 1, 1);
+                }
+            }
         }
 
         private static void FillArm(Graphics g, int x, int y, int w, int h, int outline, Color color)
