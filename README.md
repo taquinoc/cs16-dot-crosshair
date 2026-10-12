@@ -21,6 +21,7 @@ Um overlay **externo** que desenha uma mira (ponto, cruz, T, círculo ou X) no c
 - **Pré-visualização ao vivo** enquanto você ajusta
 - Segue a janela do CS (funciona em janela e em **tela cheia sem borda**)
 - **Oculta a mira nativa do CS** (opção automática + ajuda manual com botão **?**)
+- **Esconde a mira no zoom** (AWP/Scout) automaticamente
 - Atalho global **Ctrl + Alt + D** para ligar/desligar
 - Ícone na bandeja do sistema
 - Salva as configurações em `MiraPontinho.ini`
@@ -48,6 +49,11 @@ Não funcionou? Clique no botão **?** ao lado da opção — abre um passo a pa
 
 ![Ajuda para ocultar a mira](docs/help.png)
 
+### 🔭 Zoom (AWP/Scout)
+Quando você dá zoom com a AWP/Scout, o CS cobre a tela com o scope. A opção **"Esconder a mira no zoom"** detecta isso (pela tela ficar quase toda preta) e esconde o ponto, pra não atrapalhar. Se ele esconder demais ou de menos, ajuste a **"Sensibilidade do zoom"**.
+
+> É uma detecção **visual** (sem injetar nada no jogo), então em cenas muito escuras pode variar. Dá pra desligar a opção e usar o atalho manual.
+
 ### 🖥️ Tela cheia
 O Windows não deixa janelas comuns aparecerem por cima de jogos em "tela cheia exclusiva". Por isso o programa deixa o CS em **tela cheia sem borda** (opção ligada por padrão) — fica idêntico à tela cheia, e a mira aparece por cima. Se ainda assim não aparecer, deixe o CS em modo janela uma vez (*Options → Video → "Run in a window"*).
 
@@ -60,6 +66,9 @@ MiraPontinho.exe --hide-cs             oculta a mira nativa do CS
 MiraPontinho.exe --show-cs             restaura a mira nativa do CS
 MiraPontinho.exe --help-manual         abre a ajuda manual
 MiraPontinho.exe --no-borderless       não mexe na janela do CS
+MiraPontinho.exe --hide-scope          esconde a mira no zoom (padrão)
+MiraPontinho.exe --no-hide-scope       não esconde a mira no zoom
+MiraPontinho.exe --scope-threshold 55  sensibilidade do zoom (25 a 85)
 ```
 
 ### 🔧 Compilar
@@ -87,6 +96,7 @@ An **external overlay** that draws a crosshair (dot, cross, T, circle or X) in t
 - **Live preview**
 - Follows the CS window (works windowed and in **borderless fullscreen**)
 - **Hides the native CS crosshair** (automatic option + manual help with a **?** button)
+- **Auto-hides the crosshair when scoped** (AWP/Scout)
 - Global hotkey **Ctrl + Alt + D** to toggle
 - System tray icon
 - Saves settings to `MiraPontinho.ini`
@@ -98,6 +108,11 @@ An **external overlay** that draws a crosshair (dot, cross, T, circle or X) in t
 3. Adjust the crosshair in the settings window.
 4. Launch CS 1.6 — the crosshair appears in the center while CS is focused.
 
+### Zoom (AWP/Scout)
+When you scope with the AWP/Scout, CS covers the screen with the scope. The **"Hide crosshair when scoped"** option detects it (the screen becomes mostly black) and hides the dot. Adjust **"Scope sensitivity"** if it triggers too much or too little.
+
+> It is a **visual** detection (nothing is injected into the game), so very dark scenes may vary. You can turn it off and use the manual hotkey instead.
+
 ### Command line
 ```
 MiraPontinho.exe --silent              overlay only (no settings window)
@@ -107,6 +122,9 @@ MiraPontinho.exe --hide-cs             hide the native CS crosshair
 MiraPontinho.exe --show-cs             restore the native CS crosshair
 MiraPontinho.exe --help-manual         open the manual help
 MiraPontinho.exe --no-borderless       do not touch the CS window
+MiraPontinho.exe --hide-scope          hide the crosshair when scoped (default)
+MiraPontinho.exe --no-hide-scope       do not hide when scoped
+MiraPontinho.exe --scope-threshold 55  scope detection sensitivity (25-85)
 ```
 
 ### Build

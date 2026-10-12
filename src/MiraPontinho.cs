@@ -83,6 +83,9 @@ namespace MiraPontinho
                         case "--screen": s.ForceScreenCenter = true; break;
                         case "--borderless": s.Borderless = true; break;
                         case "--no-borderless": s.Borderless = false; break;
+                        case "--hide-scope": s.HideOnScope = true; break;
+                        case "--no-hide-scope": s.HideOnScope = false; break;
+                        case "--scope-threshold": s.ScopeThreshold = int.Parse(a[++i]); break;
                     }
                 }
                 catch { }
@@ -105,6 +108,8 @@ namespace MiraPontinho
         public bool Borderless = true;    // deixa a janela do CS em tela cheia sem borda
         public bool ForceScreenCenter = false;
         public bool HideCsCrosshair = false; // oculta a mira nativa do CS (via autoexec.cfg)
+        public bool HideOnScope = true;      // esconde o ponto quando da zoom (AWP/Scout)
+        public int ScopeThreshold = 55;      // % de tela preta pra considerar "scoped"
         public string CstrikePath = "";
         public string OrigCrosshairColor = "50 250 50";
         public string OrigCrosshairTranslucent = "0";
@@ -142,6 +147,8 @@ namespace MiraPontinho
                         case "onlyingame": s.OnlyInGame = v == "1"; break;
                         case "borderless": s.Borderless = v == "1"; break;
                         case "hidecs": s.HideCsCrosshair = v == "1"; break;
+                        case "hideosscope": s.HideOnScope = v == "1"; break;
+                        case "scopethreshold": s.ScopeThreshold = ParseInt(v, s.ScopeThreshold); break;
                         case "cstrikepath": s.CstrikePath = v; break;
                         case "origcolor": s.OrigCrosshairColor = v; break;
                         case "origtranslucent": s.OrigCrosshairTranslucent = v; break;
@@ -162,6 +169,7 @@ namespace MiraPontinho
             Thickness = Clamp(Thickness, 1, 20);
             Gap = Clamp(Gap, 0, 40);
             Outline = Clamp(Outline, 0, 6);
+            ScopeThreshold = Clamp(ScopeThreshold, 20, 95);
             if (Shape == null) Shape = "dot";
             Shape = Shape.ToLowerInvariant();
             if (Shape != "dot" && Shape != "cross" && Shape != "t" && Shape != "circle" && Shape != "x")
@@ -186,6 +194,8 @@ namespace MiraPontinho
                 sb.AppendLine("onlyingame=" + (OnlyInGame ? "1" : "0"));
                 sb.AppendLine("borderless=" + (Borderless ? "1" : "0"));
                 sb.AppendLine("hidecs=" + (HideCsCrosshair ? "1" : "0"));
+                sb.AppendLine("hideosscope=" + (HideOnScope ? "1" : "0"));
+                sb.AppendLine("scopethreshold=" + ScopeThreshold);
                 sb.AppendLine("cstrikepath=" + CstrikePath);
                 sb.AppendLine("origcolor=" + OrigCrosshairColor);
                 sb.AppendLine("origtranslucent=" + OrigCrosshairTranslucent);
@@ -464,6 +474,9 @@ namespace MiraPontinho
         [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
         [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);
         [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
+        [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr hWnd);
+        [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+        [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr hdc, int nXPos, int nYPos);
 
         private static readonly Dictionary<IntPtr, int> _origStyle = new Dictionary<IntPtr, int>();
         private static readonly Dictionary<IntPtr, RECT> _origRect = new Dictionary<IntPtr, RECT>();
@@ -473,6 +486,8 @@ namespace MiraPontinho
         private readonly Timer _timer;
         private bool _enabled = true;
         private DateTime _lastActive = DateTime.MinValue;
+        private bool _scoped = false;
+        private int _scopeTick = 0;
 
         public OverlayForm(Settings s)
         {
@@ -603,6 +618,13 @@ namespace MiraPontinho
                 }
             }
 
+            // esconde a mira quando o jogador esta com o zoom (AWP/Scout)
+            if (_s.HideOnScope)
+            {
+                if (++_scopeTick >= 2) { _scopeTick = 0; UpdateScopeState(game); }
+                if (_scoped) { if (Visible) Visible = false; return; }
+            }
+
             if (_s.ForceScreenCenter)
             {
                 CenterOnScreen();
@@ -628,6 +650,61 @@ namespace MiraPontinho
             // por exemplo ao mostrar o nome dos jogadores no spec)
             SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+
+        // Detecta o zoom (AWP/Scout) olhando a tela: quando o scope esta ativo,
+        // a maior parte da tela fica preta (menos o circulo central e o HUD).
+        private void UpdateScopeState(IntPtr game)
+        {
+            RECT r;
+            if (!GetClientRect(game, out r)) return;
+            int w = r.Right - r.Left;
+            int h = r.Bottom - r.Top;
+            if (w < 100 || h < 100) return;
+
+            POINT p = new POINT();
+            p.X = 0;
+            p.Y = 0;
+            ClientToScreen(game, ref p);
+
+            IntPtr hdc = GetDC(IntPtr.Zero);
+            if (hdc == IntPtr.Zero) return;
+
+            int total = 0, black = 0;
+            try
+            {
+                const int cols = 9, rows = 7;
+                for (int iy = 0; iy < rows; iy++)
+                {
+                    for (int ix = 0; ix < cols; ix++)
+                    {
+                        int x = p.X + (int)((ix + 0.5) * w / cols);
+                        int y = p.Y + (int)((iy + 0.5) * h / rows);
+                        uint c = GetPixel(hdc, x, y);
+                        if (c == 0xFFFFFFFF) continue;
+                        int rr = (int)(c & 0xFF);
+                        int gg = (int)((c >> 8) & 0xFF);
+                        int bb = (int)((c >> 16) & 0xFF);
+                        total++;
+                        if (rr <= 20 && gg <= 20 && bb <= 20) black++;
+                    }
+                }
+            }
+            finally
+            {
+                ReleaseDC(IntPtr.Zero, hdc);
+            }
+
+            if (total == 0) return;
+            int pct = black * 100 / total;
+            if (_scoped)
+            {
+                if (pct < _s.ScopeThreshold - 12) _scoped = false;
+            }
+            else
+            {
+                if (pct >= _s.ScopeThreshold) _scoped = true;
+            }
         }
 
         private void CenterOnScreen()
@@ -729,8 +806,9 @@ namespace MiraPontinho
         private Panel _swatch;
         private TrackBar _size, _thick, _gap, _outline;
         private Label _sizeV, _thickV, _gapV, _outlineV;
-        private CheckBox _onlyGame, _borderless, _hideCs;
-        private Label _csStatus;
+        private CheckBox _onlyGame, _borderless, _hideCs, _hideScope;
+        private TrackBar _scopeSens;
+        private Label _csStatus, _scopeSensV;
         private PreviewPanel _preview;
         private bool _suppress;
 
@@ -747,7 +825,7 @@ namespace MiraPontinho
             MaximizeBox = false;
             MinimizeBox = false;
             StartPosition = FormStartPosition.CenterScreen;
-            ClientSize = new Size(520, 510);
+            ClientSize = new Size(520, 530);
             TopMost = true;
             BackColor = Color.FromArgb(245, 246, 248);
 
@@ -827,14 +905,47 @@ namespace MiraPontinho
             help.Click += delegate { using (HelpForm h = new HelpForm(_s)) h.ShowDialog(this); };
             Controls.Add(help);
 
+            _hideScope = new CheckBox();
+            _hideScope.Text = "Esconder a mira no zoom (AWP/Scout)";
+            _hideScope.SetBounds(16, 328, 206, 22);
+            _hideScope.Checked = _s.HideOnScope;
+            _hideScope.CheckedChanged += delegate { _s.HideOnScope = _hideScope.Checked; Changed(); };
+            Controls.Add(_hideScope);
+
+            Label sensL = new Label();
+            sensL.Text = "Sensibilidade do zoom";
+            sensL.SetBounds(16, 352, 150, 16);
+            Controls.Add(sensL);
+
+            _scopeSensV = new Label();
+            _scopeSensV.Text = _s.ScopeThreshold + "%";
+            _scopeSensV.TextAlign = ContentAlignment.MiddleRight;
+            _scopeSensV.SetBounds(170, 352, 52, 16);
+            Controls.Add(_scopeSensV);
+
+            _scopeSens = new TrackBar();
+            _scopeSens.Minimum = 25;
+            _scopeSens.Maximum = 85;
+            _scopeSens.TickFrequency = 10;
+            _scopeSens.LargeChange = 5;
+            _scopeSens.Value = _s.ScopeThreshold;
+            _scopeSens.SetBounds(12, 368, 210, 32);
+            _scopeSens.ValueChanged += delegate
+            {
+                _s.ScopeThreshold = _scopeSens.Value;
+                _scopeSensV.Text = _scopeSens.Value + "%";
+                Changed();
+            };
+            Controls.Add(_scopeSens);
+
             _csStatus = new Label();
-            _csStatus.SetBounds(16, 330, 206, 58);
+            _csStatus.SetBounds(16, 406, 206, 40);
             _csStatus.ForeColor = Color.FromArgb(90, 90, 90);
             Controls.Add(_csStatus);
 
             Button browse = new Button();
             browse.Text = "Procurar pasta do CS...";
-            browse.SetBounds(16, 392, 200, 26);
+            browse.SetBounds(16, 448, 200, 26);
             browse.Click += delegate { BrowseCstrike(); };
             Controls.Add(browse);
 
