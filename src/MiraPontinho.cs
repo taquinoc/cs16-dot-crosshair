@@ -491,6 +491,7 @@ namespace MiraPontinho
         private DateTime _scopeFastUntil = DateTime.MinValue;
         private DateTime _lastScopeCheck = DateTime.MinValue;
         private bool _rPrev = false;
+        private DateTime _lastRightClick = DateTime.MinValue;
         private IntPtr _gameHwnd = IntPtr.Zero;
         private DateTime _nextGameSearch = DateTime.MinValue;
 
@@ -629,7 +630,11 @@ namespace MiraPontinho
                 // quando o botao direito e clicado (tecla do scope), checa rapido
                 // por um tempo; no resto, checa devagar pra economizar CPU
                 bool rdown = (GetAsyncKeyState(0x02) & 0x8000) != 0;
-                if (rdown && !_rPrev) _scopeFastUntil = DateTime.Now.AddMilliseconds(700);
+                if (rdown && !_rPrev)
+                {
+                    _scopeFastUntil = DateTime.Now.AddMilliseconds(700);
+                    _lastRightClick = DateTime.Now;
+                }
                 _rPrev = rdown;
 
                 double interval = (DateTime.Now < _scopeFastUntil) ? 35 : 200;
@@ -701,8 +706,7 @@ namespace MiraPontinho
                     g.CopyFromScreen(p.X, sy, 0, 0, new Size(w, stripH), CopyPixelOperation.SourceCopy);
 
                 BitmapData d = _scopeBmp.LockBits(new Rectangle(0, 0, w, stripH), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
-                int sideTotal = 0, sideBlack = 0, centerTotal = 0;
-                long centerSum = 0;
+                int sideTotal = 0, sideBlack = 0;
                 try
                 {
                     for (int yy = 0; yy < stripH; yy += 3)
@@ -716,15 +720,11 @@ namespace MiraPontinho
                             bool pureBlack = rr <= 10 && gg <= 10 && bb <= 10;
                             double fx = (double)xx / w;
 
+                            // so as laterais (onde o scope e preto puro, sem o circulo)
                             if (fx < 0.30 || fx > 0.70)
                             {
                                 sideTotal++;
                                 if (pureBlack) sideBlack++;
-                            }
-                            else
-                            {
-                                centerTotal++;
-                                centerSum += (rr + gg + bb) / 3;
                             }
                         }
                     }
@@ -734,16 +734,22 @@ namespace MiraPontinho
                     _scopeBmp.UnlockBits(d);
                 }
 
-                if (sideTotal == 0 || centerTotal == 0) return;
+                if (sideTotal == 0) return;
                 int sidePct = sideBlack * 100 / sideTotal;
-                int centerBright = (int)(centerSum / centerTotal);
+                bool screenScope = sidePct >= _s.ScopeThreshold;
 
-                // laterais preto puro + centro com conteudo (circulo do scope)
-                bool nowScoped = sidePct >= _s.ScopeThreshold && centerBright >= 18;
-                if (nowScoped)
-                    _scoped = true;
-                else if (sidePct < _s.ScopeThreshold - 12 || centerBright < 12)
-                    _scoped = false;
+                if (!_scoped)
+                {
+                    // so entra em "scoped" se um clique direito (o gatilho do zoom)
+                    // aconteceu recentemente -> evita falso positivo em cena escura
+                    if (screenScope && (DateTime.Now - _lastRightClick).TotalMilliseconds < 1500)
+                        _scoped = true;
+                }
+                else
+                {
+                    if (!screenScope)
+                        _scoped = false;
+                }
             }
             catch { }
         }
