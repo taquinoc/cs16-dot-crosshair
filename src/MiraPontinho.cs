@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -474,9 +475,8 @@ namespace MiraPontinho
         [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
         [DllImport("user32.dll")] private static extern IntPtr MonitorFromWindow(IntPtr hwnd, int dwFlags);
         [DllImport("user32.dll")] private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MONITORINFO lpmi);
-        [DllImport("user32.dll")] private static extern IntPtr GetDC(IntPtr hWnd);
-        [DllImport("user32.dll")] private static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
-        [DllImport("gdi32.dll")] private static extern uint GetPixel(IntPtr hdc, int nXPos, int nYPos);
+        [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
+        [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr hWnd);
 
         private static readonly Dictionary<IntPtr, int> _origStyle = new Dictionary<IntPtr, int>();
         private static readonly Dictionary<IntPtr, RECT> _origRect = new Dictionary<IntPtr, RECT>();
@@ -487,7 +487,12 @@ namespace MiraPontinho
         private bool _enabled = true;
         private DateTime _lastActive = DateTime.MinValue;
         private bool _scoped = false;
-        private int _scopeTick = 0;
+        private Bitmap _scopeBmp;
+        private DateTime _scopeFastUntil = DateTime.MinValue;
+        private DateTime _lastScopeCheck = DateTime.MinValue;
+        private bool _rPrev = false;
+        private IntPtr _gameHwnd = IntPtr.Zero;
+        private DateTime _nextGameSearch = DateTime.MinValue;
 
         public OverlayForm(Settings s)
         {
@@ -505,7 +510,7 @@ namespace MiraPontinho
             ApplySettings();
 
             _timer = new Timer();
-            _timer.Interval = 50;
+            _timer.Interval = 40;
             _timer.Tick += OnTick;
             _timer.Start();
 
@@ -621,7 +626,18 @@ namespace MiraPontinho
             // esconde a mira quando o jogador esta com o zoom (AWP/Scout)
             if (_s.HideOnScope)
             {
-                if (++_scopeTick >= 2) { _scopeTick = 0; UpdateScopeState(game); }
+                // quando o botao direito e clicado (tecla do scope), checa rapido
+                // por um tempo; no resto, checa devagar pra economizar CPU
+                bool rdown = (GetAsyncKeyState(0x02) & 0x8000) != 0;
+                if (rdown && !_rPrev) _scopeFastUntil = DateTime.Now.AddMilliseconds(700);
+                _rPrev = rdown;
+
+                double interval = (DateTime.Now < _scopeFastUntil) ? 35 : 200;
+                if ((DateTime.Now - _lastScopeCheck).TotalMilliseconds >= interval)
+                {
+                    _lastScopeCheck = DateTime.Now;
+                    UpdateScopeState(game);
+                }
                 if (_scoped) { if (Visible) Visible = false; return; }
             }
 
@@ -653,7 +669,8 @@ namespace MiraPontinho
         }
 
         // Detecta o zoom (AWP/Scout) olhando a tela: quando o scope esta ativo,
-        // a maior parte da tela fica preta (menos o circulo central e o HUD).
+        // a faixa de cima da tela fica preta (menos o circulo central e o HUD).
+        // Usa CopyFromScreen (rapido) em vez de GetPixel (que e lentissimo).
         private void UpdateScopeState(IntPtr game)
         {
             RECT r;
@@ -667,44 +684,52 @@ namespace MiraPontinho
             p.Y = 0;
             ClientToScreen(game, ref p);
 
-            IntPtr hdc = GetDC(IntPtr.Zero);
-            if (hdc == IntPtr.Zero) return;
+            int stripH = h * 12 / 100;
+            if (stripH < 8) stripH = 8;
+            int sy = p.Y + h * 1 / 100;
 
-            int total = 0, black = 0;
             try
             {
-                const int cols = 9, rows = 7;
-                for (int iy = 0; iy < rows; iy++)
+                if (_scopeBmp == null || _scopeBmp.Width != w || _scopeBmp.Height != stripH)
                 {
-                    for (int ix = 0; ix < cols; ix++)
+                    if (_scopeBmp != null) _scopeBmp.Dispose();
+                    _scopeBmp = new Bitmap(w, stripH, PixelFormat.Format32bppArgb);
+                }
+
+                using (Graphics g = Graphics.FromImage(_scopeBmp))
+                    g.CopyFromScreen(p.X, sy, 0, 0, new Size(w, stripH), CopyPixelOperation.SourceCopy);
+
+                int total = 0, black = 0;
+                BitmapData d = _scopeBmp.LockBits(new Rectangle(0, 0, w, stripH), ImageLockMode.ReadOnly, PixelFormat.Format32bppArgb);
+                try
+                {
+                    for (int yy = 0; yy < stripH; yy += 4)
                     {
-                        int x = p.X + (int)((ix + 0.5) * w / cols);
-                        int y = p.Y + (int)((iy + 0.5) * h / rows);
-                        uint c = GetPixel(hdc, x, y);
-                        if (c == 0xFFFFFFFF) continue;
-                        int rr = (int)(c & 0xFF);
-                        int gg = (int)((c >> 8) & 0xFF);
-                        int bb = (int)((c >> 16) & 0xFF);
-                        total++;
-                        if (rr <= 20 && gg <= 20 && bb <= 20) black++;
+                        for (int xx = 0; xx < w; xx += 8)
+                        {
+                            int v = Marshal.ReadInt32(d.Scan0, yy * d.Stride + xx * 4);
+                            total++;
+                            if ((v & 0xFF) <= 20 && ((v >> 8) & 0xFF) <= 20 && ((v >> 16) & 0xFF) <= 20) black++;
+                        }
                     }
                 }
-            }
-            finally
-            {
-                ReleaseDC(IntPtr.Zero, hdc);
-            }
+                finally
+                {
+                    _scopeBmp.UnlockBits(d);
+                }
 
-            if (total == 0) return;
-            int pct = black * 100 / total;
-            if (_scoped)
-            {
-                if (pct < _s.ScopeThreshold - 12) _scoped = false;
+                if (total == 0) return;
+                int pct = black * 100 / total;
+                if (_scoped)
+                {
+                    if (pct < _s.ScopeThreshold - 12) _scoped = false;
+                }
+                else
+                {
+                    if (pct >= _s.ScopeThreshold) _scoped = true;
+                }
             }
-            else
-            {
-                if (pct >= _s.ScopeThreshold) _scoped = true;
-            }
+            catch { }
         }
 
         private void CenterOnScreen()
@@ -758,36 +783,47 @@ namespace MiraPontinho
             catch { }
         }
 
-        private static IntPtr FindGameWindow()
+        private IntPtr FindGameWindow()
         {
-            IntPtr found = IntPtr.Zero;
-            EnumWindows(delegate(IntPtr hWnd, IntPtr lParam)
+            // reutiliza o handle em cache enquanto ainda for valido (barato)
+            if (_gameHwnd != IntPtr.Zero && IsWindow(_gameHwnd) && IsWindowVisible(_gameHwnd) && !IsIconic(_gameHwnd))
+                return _gameHwnd;
+
+            // so procura de novo a cada 1,5s (evita enumerar tudo a cada tick)
+            if (DateTime.Now < _nextGameSearch)
+                return IntPtr.Zero;
+            _nextGameSearch = DateTime.Now.AddMilliseconds(1500);
+
+            HashSet<uint> pids = new HashSet<uint>();
+            try
             {
-                if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
+                foreach (Process p in Process.GetProcessesByName("hl"))
+                    pids.Add((uint)p.Id);
+            }
+            catch { }
 
-                uint pid;
-                GetWindowThreadProcessId(hWnd, out pid);
-                if (pid == 0) return true;
-
-                string name = null;
-                try
+            IntPtr found = IntPtr.Zero;
+            if (pids.Count > 0)
+            {
+                EnumWindows(delegate(IntPtr hWnd, IntPtr lParam)
                 {
-                    Process p = Process.GetProcessById((int)pid);
-                    name = p.ProcessName;
-                }
-                catch { return true; }
+                    if (!IsWindowVisible(hWnd) || IsIconic(hWnd)) return true;
 
-                if (name != null && name.Equals("hl", StringComparison.OrdinalIgnoreCase))
-                {
+                    uint pid;
+                    GetWindowThreadProcessId(hWnd, out pid);
+                    if (!pids.Contains(pid)) return true;
+
                     RECT r;
                     if (GetClientRect(hWnd, out r) && (r.Right - r.Left) >= 200 && (r.Bottom - r.Top) >= 200)
                     {
                         found = hWnd;
                         return false;
                     }
-                }
-                return true;
-            }, IntPtr.Zero);
+                    return true;
+                }, IntPtr.Zero);
+            }
+
+            _gameHwnd = found;
             return found;
         }
 
