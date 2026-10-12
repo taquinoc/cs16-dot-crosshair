@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Compilar (csc)
+        shell: pwsh
+        run: |
+          $csc = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+          if (-not (Test-Path $csc)) { $csc = "C:\Windows\Microsoft.NET\Framework\v4.0.30319\csc.exe" }
+          if (-not (Test-Path $csc)) { throw "csc.exe nao encontrado" }
+          & $csc /nologo /target:winexe /out:MiraPontinho.exe /reference:System.Windows.Forms.dll /reference:System.Drawing.dll src\MiraPontinho.cs
+          if (-not (Test-Path MiraPontinho.exe)) { throw "Falha ao compilar" }
+          Get-Item MiraPontinho.exe | Select-Object Name, Length
+
+      - name: Publicar release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: MiraPontinho.exe
+          generate_release_notes: true
