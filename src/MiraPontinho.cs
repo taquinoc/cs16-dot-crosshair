@@ -221,49 +221,56 @@ namespace MiraPontinho
         public static void Draw(Graphics g, float cx, float cy, Settings s, float scale)
         {
             g.SmoothingMode = SmoothingMode.None;
-            float size = s.Size * scale;
-            float thick = s.Thickness * scale;
-            float gap = s.Gap * scale;
-            float outline = s.Outline * scale;
+
+            // centraliza no PIXEL exato (evita traco torto por offset de 0.5px)
+            int icx = (int)Math.Round(cx);
+            int icy = (int)Math.Round(cy);
+            int size = Math.Max(1, (int)Math.Round(s.Size * scale));
+            int thick = Math.Max(1, (int)Math.Round(s.Thickness * scale));
+            int gap = (int)Math.Round(s.Gap * scale);
+            int outline = (int)Math.Round(s.Outline * scale);
 
             if (s.Shape == "dot")
             {
+                int x = icx - (size - 1) / 2;
+                int y = icy - (size - 1) / 2;
                 if (outline > 0)
                     using (SolidBrush b = new SolidBrush(Color.Black))
-                        g.FillEllipse(b, cx - size / 2 - outline, cy - size / 2 - outline, size + 2 * outline, size + 2 * outline);
+                        g.FillEllipse(b, x - outline, y - outline, size + 2 * outline, size + 2 * outline);
                 using (SolidBrush b = new SolidBrush(s.Color))
-                    g.FillEllipse(b, cx - size / 2, cy - size / 2, size, size);
+                    g.FillEllipse(b, x, y, size, size);
                 return;
             }
 
             if (s.Shape == "circle")
             {
-                float d = size;
+                int x = icx - (size - 1) / 2;
+                int y = icy - (size - 1) / 2;
                 if (outline > 0)
                     using (Pen p = new Pen(Color.Black, thick + 2 * outline))
-                        g.DrawEllipse(p, cx - d / 2, cy - d / 2, d, d);
+                        g.DrawEllipse(p, x - outline, y - outline, size + 2 * outline, size + 2 * outline);
                 using (Pen p = new Pen(s.Color, thick))
-                    g.DrawEllipse(p, cx - d / 2, cy - d / 2, d, d);
+                    g.DrawEllipse(p, x, y, size, size);
                 return;
             }
 
             if (s.Shape == "x")
             {
-                float a = gap + size;
-                DrawLine(g, cx - a, cy - a, cx + a, cy + a, thick, outline, s.Color);
-                DrawLine(g, cx - a, cy + a, cx + a, cy - a, thick, outline, s.Color);
+                int a = gap + size;
+                DrawLine(g, icx - a, icy - a, icx + a, icy + a, thick, outline, s.Color);
+                DrawLine(g, icx - a, icy + a, icx + a, icy - a, thick, outline, s.Color);
                 return;
             }
 
             bool up = s.Shape == "cross";
-            float h = thick / 2;
-            if (up) FillArm(g, cx - h, cy - gap - size, thick, size, outline, s.Color);
-            FillArm(g, cx - h, cy + gap, thick, size, outline, s.Color);
-            FillArm(g, cx - gap - size, cy - h, size, thick, outline, s.Color);
-            FillArm(g, cx + gap, cy - h, size, thick, outline, s.Color);
+            int h = (thick - 1) / 2;
+            if (up) FillArm(g, icx - h, icy - gap - size, thick, size, outline, s.Color);
+            FillArm(g, icx - h, icy + gap, thick, size, outline, s.Color);
+            FillArm(g, icx - gap - size, icy - h, size, thick, outline, s.Color);
+            FillArm(g, icx + gap, icy - h, size, thick, outline, s.Color);
         }
 
-        private static void FillArm(Graphics g, float x, float y, float w, float h, float outline, Color color)
+        private static void FillArm(Graphics g, int x, int y, int w, int h, int outline, Color color)
         {
             if (outline > 0)
                 using (SolidBrush b = new SolidBrush(Color.Black))
@@ -272,7 +279,7 @@ namespace MiraPontinho
                 g.FillRectangle(b, x, y, w, h);
         }
 
-        private static void DrawLine(Graphics g, float x0, float y0, float x1, float y1, float thick, float outline, Color color)
+        private static void DrawLine(Graphics g, int x0, int y0, int x1, int y1, int thick, int outline, Color color)
         {
             if (outline > 0)
                 using (Pen p = new Pen(Color.Black, thick + 2 * outline))
@@ -420,7 +427,7 @@ namespace MiraPontinho
             if (extent < 1) extent = 1;
             float scale = Math.Min((float)(ClientSize.Width - 24) / extent, (float)(ClientSize.Height - 24) / extent);
             if (scale > 6f) scale = 6f;
-            CrosshairRenderer.Draw(e.Graphics, ClientSize.Width / 2f, ClientSize.Height / 2f, _s, scale);
+            CrosshairRenderer.Draw(e.Graphics, (ClientSize.Width - 1) / 2f, (ClientSize.Height - 1) / 2f, _s, scale);
         }
     }
 
@@ -533,7 +540,8 @@ namespace MiraPontinho
         public void ApplySettings()
         {
             int extent = CrosshairRenderer.Extent(_s) + 2 * _s.Outline + 10;
-            if (extent < 40) extent = 40;
+            if (extent < 41) extent = 41;
+            if ((extent & 1) == 0) extent++; // impar => o centro cai num pixel exato
             Size = new Size(extent, extent);
             Invalidate();
         }
@@ -659,7 +667,8 @@ namespace MiraPontinho
                 ClientToScreen(game, ref p);
                 int cx = p.X + (r.Right - r.Left) / 2;
                 int cy = p.Y + (r.Bottom - r.Top) / 2;
-                Location = new Point(cx - Width / 2, cy - Height / 2);
+                int half = (Width - 1) / 2; // o pixel central do overlay fica no centro do CS
+                Location = new Point(cx - half, cy - half);
             }
             ShowOverlay();
         }
@@ -757,7 +766,8 @@ namespace MiraPontinho
         private void CenterOnScreen()
         {
             Rectangle b = Screen.PrimaryScreen.Bounds;
-            Location = new Point(b.X + b.Width / 2 - Width / 2, b.Y + b.Height / 2 - Height / 2);
+            int half = (Width - 1) / 2;
+            Location = new Point(b.X + b.Width / 2 - half, b.Y + b.Height / 2 - half);
         }
 
         private static bool IsGameForeground(IntPtr game)
@@ -851,7 +861,7 @@ namespace MiraPontinho
 
         protected override void OnPaint(PaintEventArgs e)
         {
-            CrosshairRenderer.Draw(e.Graphics, ClientSize.Width / 2f, ClientSize.Height / 2f, _s, 1f);
+            CrosshairRenderer.Draw(e.Graphics, (ClientSize.Width - 1) / 2f, (ClientSize.Height - 1) / 2f, _s, 1f);
         }
     }
 
