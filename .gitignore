@@ -1,0 +1,17 @@
+# Configuracoes do usuario (geradas em tempo de execucao)
+MiraPontinho.ini
+
+# Binarios (distribuidos via GitHub Releases, nao no repositorio)
+MiraPontinho.exe
+*.exe
+
+# Saidas de build do .NET
+bin/
+obj/
+*.pdb
+*.user
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store

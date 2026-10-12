@@ -1,0 +1,71 @@
+MIRA PONTINHO - overlay externo (zero risco de VAC)
+====================================================
+
+O que e:
+  Desenha uma mira (Ponto, Cruz, T, Circulo ou X) no centro da tela, por cima
+  do CS 1.6. NAO modifica nenhum arquivo do jogo e NAO injeta nada no processo
+  do CS -> o VAC nao detecta. Voce continua usando a Steam original normalmente.
+
+Como usar:
+  1) Abra "Mira Pontinho.exe" (ou "Mira Pontinho.bat").
+  2) Abre a janela de configuracao. Ajuste a mira como quiser.
+  3) Abra o CS 1.6. A mira aparece no centro quando o CS esta em foco.
+  4) Ctrl + Alt + D  -> liga/desliga.  Icone perto do relogio -> Configurar/Sair.
+
+A janela de configuracao:
+  - Forma da mira  : Ponto, Cruz (+), T, Circulo, X
+  - Cor            : botao "Escolher cor..."
+  - Tamanho        : tamanho do ponto / comprimento dos bracos
+  - Espessura      : grossura dos tracos
+  - Vao            : espaco no meio (para Cruz/T/X)
+  - Contorno preto : contorno para dar contraste
+  - Ocultar a mira nativa do CS  (deixa SO a sua mira - recomendado)
+  Tudo muda AO VIVO (veja a pre-visualizacao a esquerda).
+  As configuracoes ficam salvas no arquivo MiraPontinho.ini.
+
+OCULTAR A MIRA NATIVA DO CS (pra nao ficar feia por baixo):
+  Marque a opcao "Ocultar a mira nativa do CS". O programa grava estas linhas
+  nos arquivos "userconfig.cfg" e "autoexec.cfg" da pasta do CS:
+
+      cl_crosshair_color "0 0 0"
+      cl_crosshair_translucent "1"
+
+  Como a mira do CS fica em modo aditivo, o preto deixa ela invisivel.
+  O arquivo "userconfig.cfg" e o que o CS executa por ultimo (o config.cfg
+  termina com "exec userconfig.cfg"), por isso ele garante o efeito.
+  Isso e so arquivo de configuracao - NAO tem risco de VAC.
+  IMPORTANTE: reinicie o CS para aplicar. (No console voce tambem pode digitar
+  "exec userconfig.cfg" pra aplicar na hora.)
+  Desmarque a opcao para restaurar a mira do CS (ele guarda sua cor original).
+
+  NAO FUNCIONOU? Clique no botao "?" ao lado da opcao: abre uma janelinha com o
+  passo a passo pra ocultar na mao (comandos pra colar no console), um botao
+  "Copiar comandos" e um botao "Abrir pasta do CS".
+
+TELA CHEIA:
+  O Windows nao deixa uma janela comum aparecer por cima de jogos em
+  "tela cheia exclusiva". A solucao (sem risco, igual ao Borderless Gaming)
+  e deixar o CS em "tela cheia SEM BORDA". O programa faz isso sozinho quando
+  a opcao "Deixar o CS em tela cheia sem borda" esta marcada (vem marcada).
+  Se mesmo assim nao aparecer, deixe o CS em modo janela UMA vez
+  (Options > Video > "Run in a window" = Yes).
+
+Atalhos de linha de comando (opcional):
+  MiraPontinho.exe --hide-cs           (oculta a mira do CS, sem abrir a janela)
+  MiraPontinho.exe --show-cs           (restaura a mira do CS)
+  MiraPontinho.exe --silent            (so a mira, sem abrir a configuracao)
+  MiraPontinho.exe --r 255 --g 0 --b 0 (cor inicial: vermelho)
+  MiraPontinho.exe --no-borderless     (nao mexe na janela do CS)
+
+Como remover:
+  Nada foi instalado no CS. Feche o programa (icone perto do relogio -> Sair)
+  e apague esta pasta. Se usou "Ocultar a mira nativa do CS", desmarque a opcao
+  antes (pra restaurar a mira do CS) ou apague o bloco "Mira Pontinho" do
+  autoexec.cfg. A janela do CS tambem e restaurada ao sair.
+
+Recompilar (opcional):
+  Rode "build.bat" (usa o .NET Framework que ja vem no Windows).
+
+Aviso:
+  E uma mira cosmetica externa. O VAC nao pega (nao injeta nada no jogo),
+  mas alguns admins de servidor podem implicar por ser um recurso externo.
